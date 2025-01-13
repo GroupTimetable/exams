@@ -37,7 +37,7 @@ function createOffscreenCanvas(width, height) {
 //   fontDescenderFac is (1 / 1000) * font.embedder.scale * font.embedder.font.descent;
 // But the result looks completely wrong.
 const fontSizeFac = 0.9;
-const fontDescenderFac = -0.27; // of font size
+const fontDescenderFac = -0.2; // of font size
 // Also, pdf-lib js has a bug at
 // https://github.com/Hopding/pdf-lib/blob/93dd36e85aa659a3bca09867d2d8fac172501fbe/src/core/embedders/CustomFontEmbedder.ts#L95
 // descender should be multiplied by this.scale
@@ -89,9 +89,10 @@ function createCanvasRenderer() { return {
         this.context = this.canvas[0].getContext("2d", { alpha: false, desynchronized: true });
 
         this.context.strokeStyle = '#000';
-        this.context.textBaseline = 'bottom';
+        this.context.textBaseline = 'ideographic';
         this.fontSizeFac = fontSizeFac;
         this.fontHeightFac = 1 / fontSizeFac;
+        this.size = 0
 
         // as if this is not a common operation
         this.context.fillStyle = 'white';
@@ -132,12 +133,13 @@ function createCanvasRenderer() { return {
     },
     setFontSize(size) {
         this.context.font = size + 'px RenderFont';
+        this.size = size
     },
     drawText(text, x, y) {
         if(this.rotated) {
-            this.context.fillText(text, -y, x);
+            this.context.fillText(text, -y, x - fontDescenderFac * this.size);
         } else {
-            this.context.fillText(text, x, y);
+            this.context.fillText(text, x, y - fontDescenderFac * this.size);
         }
     },
     finalizeTexts() {

@@ -153,39 +153,37 @@ function calcItemBounds(item) {
 const dateRegex = /^\d\d\.\d\d$/
 
 function findDaysOfWeekHours(cont, itemBs) {
-    let hoursR = -Infinity;
-    const hours = [];
+    const days = []
+    let daysR = -Infinity;
     for(let i = 0; i < cont.length; i++) {
         const str = cont[i].str.trim()
         const st = str.toLowerCase()
         const shortDay = st.substring(0, 2).trim()
         const rest = st.substring(2).trim()
         if(daysOfWeekShortenedLower.includes(shortDay) && dateRegex.test(rest)) {
-            hours.push({ i: i, time: str })
-            hoursR = Math.max(hoursR, itemBs[i].r)
+            const arr = []
+            arr.i = i
+            arr.name = str
+            days.push(arr)
+            daysR = Math.max(daysR, itemBs[i].r)
         }
     }
 
-    if(hours < 2) throw "В рассписании найдено меньше двух пар";
+    if(days < 2) throw "В рассписании найдено меньше двух дней";
 
-    let hoursT, hoursHeight;
+    let daysT, daysHeight;
     {
-        const b0 = itemBs[hours[0].i]
-        const b1 = itemBs[hours[1].i]
+        const b0 = itemBs[days[0].i]
+        const b1 = itemBs[days[1].i]
 
-        const c0 = 0.5 * (b0.b + b0.t) //center of the 1st hours label
+        const c0 = 0.5 * (b0.b + b0.t) //center of the 1st days label
         const c1 = 0.5 * (b1.b + b1.t) // --- 2nd ---
 
-        hoursHeight = Math.abs(c1 - c0);
-        hoursT = c0 + hoursHeight * 0.5;
+        daysHeight = Math.abs(c1 - c0);
+        daysT = c0 + daysHeight * 0.5;
     }
 
-    const days = Array(hours.length);
-    for(let i = 0; i < hours.length; i++) {
-        days[i] = [hours[i]]
-    }
-
-    return { days, hoursC: hours.length, hoursR, hoursT, hoursHeight };
+    return { days, daysC: days.length, daysR, daysT, daysHeight };
 }
 
 /*[a1; a2] & (b1, b2)*/
@@ -250,33 +248,22 @@ function makeSchedule(cont, pageView, groupNameI) {
 
     const pageR = Math.max(pageView[0], pageView[2])
     const colBounds = findColumnBounds(cont, itemBs, groupNameI);
-    const { days, hoursC, hoursR, hoursT, hoursHeight } = findDaysOfWeekHours(cont, itemBs);
+    const { days, daysC, daysR, daysT, daysHeight } = findDaysOfWeekHours(cont, itemBs);
     const dates = findDates(cont, itemBs, colBounds)
     const colWidth = colBounds.r - colBounds.l;
 
     const errX = colWidth * 0.02;
-    const curColI = Math.max(0, Math.floor((colBounds.l - hoursR + errX) / colWidth));
-    const colC = Math.max(0, Math.floor((pageR - hoursR + errX) / colWidth));
+    const curColI = Math.max(0, Math.floor((colBounds.l - daysR + errX) / colWidth));
+    const colC = Math.max(0, Math.floor((pageR - daysR + errX) / colWidth));
     const tableL = colBounds.l - curColI * colWidth, tableR = tableL + colC * colWidth;
-    const tableT = hoursT, tableB = tableT - hoursC * hoursHeight;
-    const colFactor = 1 / colWidth, rowFactor = 1 / hoursHeight;
+    const tableT = daysT, tableB = tableT - daysC * daysHeight;
+    const colFactor = 1 / colWidth, rowFactor = 1 / daysHeight;
 
-    const bigFields_ = [];
-    const table = Array(colC * hoursC);
-    const rowDayHour = (() => { const a = Array(hoursC); a.length = 0; return a; })();
-    const schedule = Array(days.length);
+    const table = Array(colC * daysC);
     for(let i = 0; i < table.length; i++) table[i] = Array(4);
 
-    for(let dayI = 0; dayI < days.length; dayI++) {
-        const day = days[dayI];
-        if(day == undefined) continue;
-        schedule[dayI] = Array(day.length);
-        for(let l = 0; l < day.length; l++) rowDayHour.push([dayI, l])
-    }
-
-    const addToCell = (cell, subs, result, ifError) => {
-        for(let i = 0; i < subs.length; i++) {
-            if(!subs[i]) continue;
+    const addToCell = (cell, result, ifError) => {
+        for(let i = 0; i < 4; i++) {
             if(cell[i] != undefined) { console.error('cell already filled!', ifError, i); continue; }
             cell[i] = result;
         }
@@ -292,29 +279,11 @@ function makeSchedule(cont, pageView, groupNameI) {
         const cy = 0.5 * (group.t + group.b);
         const x = Math.floor((cx - tableL) * colFactor);
         const y = Math.floor((tableT - cy) * rowFactor);
-        if(!(x >= 0 && x < colC && y >= 0 && y < hoursC)) return;
+        if(!(x >= 0 && x < colC && y >= 0 && y < daysC)) return;
 
-        const cellL = tableL + x * colWidth;
-        const cellR = cellL + colWidth;
-        const cellCX = tableL + x * colWidth + colWidth * 0.5;
-        const cellCY = tableT - (y * hoursHeight + hoursHeight * 0.5);
-
-        const descender = group.lineHeight * 0.2; //for some reason text coordinates start at baseline, but height is line height, and it overlaps at the bottom :/
-        // ^ 0.1 doesn't work. obviously.
-        //is top half, is bottom half ...
-        const t = group.t - descender > cellCY, b = group.b < cellCY;
-        if(group.l < cellL || group.r > cellR) {
-            group.t = t; group.b = b;
-            group.x = x; group.y = y;
-            bigFields_.push(group);
-        }
-        else {
-            const l = group.l < cellCX, r = group.r > cellCX;
-            const inCurCol = intersects(group.l, group.r, colBounds.l, colBounds.r);
-            const result = inCurCol ? joinItems(group.items) : true/*debug: group.items[0]. We don't need text bc it won't be used, just use nonnul*/;
-            const subs = [t && l, t && r, b && l, b && r]
-            addToCell(table[y * colC + x], subs, result, [x, y])
-        }
+        const inCurCol = intersects(group.l, group.r, colBounds.l, colBounds.r);
+        const result = inCurCol ? joinItems(group.items) : true/*debug: group.items[0]. We don't need text bc it won't be used, just use nonnul*/;
+        addToCell(table[y * colC + x], result, [x, y])
     };
 
     //separate text into groups
@@ -350,22 +319,46 @@ function makeSchedule(cont, pageView, groupNameI) {
     }
     if(lastGroup !== undefined) writeGroup(lastGroup);
 
+    const rowDayHour = (() => { const a = Array(daysC); a.length = 0; return a; })();
+    const schedule = Array(days.length);
+    for(let dayI = 0; dayI < days.length; dayI++) {
+        const day = days[dayI];
+        if(day == undefined) continue;
+        schedule[dayI] = Array(0);
+        for(let l = 0; l < 1; l++) rowDayHour.push([dayI, l])
+    }
+
     //remove trailing empty lessons
     //? if day is completely empty => set to undefined ?
-    for(let i = rowDayHour.length-1; i >= 0; i--) {
-        const [dayI, lessonI] = rowDayHour[i];
-        const day = schedule[dayI];
+    for(let i = 0; i < days.length; i++) {
+        const day = days[i]
+        schedule[i] = day
 
         const cell = table[i*colC + curColI];
-        let empty = day.length === lessonI+1;
+        let empty = true
         for(let i = 0; empty && i < cell.length; i++) empty = cell[i] == undefined;
 
         if(!empty) {
             for(let i = 0; i < cell.length; i++) cell[i] ??= '';
-            const lesson = days[dayI][lessonI];
-            day[lessonI] = { time: lesson.time, lessons: cell };
+            // safe to do. Either all cells have same string value, or none
+            const text = cell[0]
+            // also includes some invalid times
+            const timeRegex = /([0-1][0-9]|2[0-4]):([0-5][0-9]|60)/g
+
+            let match
+            let prevMatch
+            while((match = timeRegex.exec(text)) != null) {
+                if(prevMatch != null) {
+                    const lessonText = text.substring(prevMatch.index + 5, match.index).trim()
+                    day.push({ time: prevMatch[0], lessons: [lessonText, lessonText, lessonText, lessonText] })
+                }
+                prevMatch = match
+            }
+            if(prevMatch != null) {
+                const lessonText = text.substring(prevMatch.index + 5).trim()
+                day.push({ time: prevMatch[0], lessons: [lessonText, lessonText, lessonText, lessonText] })
+            }
         }
-        else day.pop()
     }
 
     return [schedule, dates]
@@ -628,7 +621,6 @@ async function renderSchedule(renderer, schedule, editParams) {
         addColumn(i * inOneCol, i * inOneCol + inOneCol)
     }
     addColumn((columns - 1) * inOneCol, schedule.length)
-    console.log(renderPattern)
 
     const rowMaxHeight = maxRows * rowHeight;
     const heightIfSignFirst = Math.max(rowMaxHeight, firstRows * rowHeight + signatureHeightFull);
@@ -648,6 +640,7 @@ async function renderSchedule(renderer, schedule, editParams) {
     await renderer.init(pageWidth, pageHeight)
 
     const dowArray = []
+    const timeArr = []
     const yellowArr = []
     const lessonsArr = []
     const innerBorderOffset = (drawBorder
@@ -655,6 +648,7 @@ async function renderSchedule(renderer, schedule, editParams) {
         : borderWidth + innerBorderWidth); // for both sides
     const startW = groupSize.w - innerBorderOffset;
     const dowColWidth = startW * 0.1;
+    const timeColWidth = dowColWidth;
 
     renderer.setupRect(innerBorderWidth, false)
     for(let i = 0; i < renderPattern.length; i++) {
@@ -673,7 +667,7 @@ async function renderSchedule(renderer, schedule, editParams) {
             const h = groupSize.h - innerBorderOffset / rowsCount;
             const dayH = rowsCount * groupSize.h;
 
-            const dowText = day[0].time
+            const dowText = day.name
             if(dowOnTop) {
                 dowArray.push({ text: dowText, x, y, w, h })
                 renderer.drawRect(x, y, w, h)
@@ -686,10 +680,13 @@ async function renderSchedule(renderer, schedule, editParams) {
                 w -= dowColWidth;
             }
 
+            const lessonW = w - timeColWidth;
             for(let i = 0; i < day.length; i++) {
                 const lesson = day[i]
                 const ly = y + i*h;
-                drawLessons(lessonsArr, yellowArr, renderer, lesson, x, ly, w, h)
+                renderer.drawRect(x, ly, timeColWidth, h)
+                timeArr.push({ text: lesson.time, x, y: ly, w: timeColWidth, h })
+                drawLessons(lessonsArr, yellowArr, renderer, lesson, x + timeColWidth, ly, lessonW, h)
             }
 
             startY += dayH;
@@ -775,8 +772,25 @@ async function renderSchedule(renderer, schedule, editParams) {
     }
     renderer.finalizeTexts();
 
-    renderer.setupText(false);
+    renderer.setupText(true);
+    for(let i = 0; i < timeArr.length; i++) {
+        const it = timeArr[i];
+        const t = it.text
+        const cx = it.x + it.w * 0.5
+        const cy = it.y + it.h * 0.5
+        const size = calcFontSizeForBoundsSingle(
+            renderer, t,
+            it.h * 0.95 - innerBorderWidth,
+            it.w * 0.95 - innerBorderWidth,
+            widths
+        );
 
+        renderer.setFontSize(size);
+        renderer.drawText(t, cx + size*0.5, cy + widths[0]*0.5, widths);
+    }
+    renderer.finalizeTexts();
+
+    renderer.setupText(false);
     for(let i = 0; i < lessonsArr.length; i++) {
         const { text, x, y, w, h } = lessonsArr[i];
 
@@ -803,6 +817,7 @@ async function renderSchedule(renderer, schedule, editParams) {
         renderer.setImportant(!text.toLowerCase().includes('консультация'))
         drawTextCentered(renderer, res.texts, res.fontSize, x + w*0.5, y + h*0.5, res.lineWidths);
     }
+    renderer.finalizeTexts();
 
     renderer.setupText(false);
     renderer.setFontSize(signFontSize);

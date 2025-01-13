@@ -209,8 +209,8 @@ const createGenSettings = wrapDep(Promise.all([loadDom, loadCommon]).then(_ => {
     genSettings.dowPositionEl = genPopupHTML.querySelector('.dow-position')
 
     const savedSettings = [
-        [2, (1/3.5 * 100).toFixed(2), '10', true, false],
         [2, (1/3.5 * 100).toFixed(2), '20', false, true],
+        [2, (1/3.5 * 100).toFixed(2), '10', true, false],
     ]
     let curSettings = 0;
 
