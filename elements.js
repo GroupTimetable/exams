@@ -17,17 +17,14 @@ const outputElementOrig = htmlToElement(`
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="-100 -100 2100 2100" stroke-width="150"><path d="M1251.654 0c44.499 0 88.207 18.07 119.718 49.581l329.223 329.224c31.963 31.962 49.581 74.54 49.581 119.717V1920H169V0Zm-66.183 112.941H281.94V1807.06h1355.294V564.706H1185.47V112.94Zm112.94 23.379v315.445h315.445L1298.412 136.32Z"></path> <path d="M900.497 677.67c26.767 0 50.372 12.65 67.991 37.835 41.901 59.068 38.965 121.976 23.492 206.682-5.308 29.14.113 58.617 16.263 83.125 22.814 34.786 55.68 82.673 87.981 123.219 23.718 29.93 60.198 45.854 97.13 40.885 23.718-3.276 52.292-5.986 81.656-5.986 131.012 0 121.186 46.757 133.045 89.675 6.55 25.976 3.275 48.678-10.165 65.506-16.715 22.701-51.162 34.447-101.534 34.447-55.793 0-74.202-9.487-122.767-24.96-27.445-8.81-55.906-10.617-83.69-3.275-55.453 14.456-146.936 36.48-223.284 46.983-40.772 5.647-77.816 26.654-102.438 60.875-55.454 76.8-106.842 148.518-188.273 148.518-21.007 0-40.32-7.567-56.244-22.701-23.492-23.492-33.544-49.581-28.574-79.85 13.778-92.95 128.075-144.79 196.066-182.625 16.037-8.923 28.687-22.589 36.592-39.53l107.86-233.223c7.68-16.377 10.051-34.56 7.228-52.518-12.537-79.059-31.06-211.99 18.748-272.075 10.955-13.44 26.09-21.007 42.917-21.007Zm20.556 339.953c-43.257 126.607-119.718 264.282-129.996 280.32 92.273-43.37 275.916-65.28 275.916-65.28-92.386-88.998-145.92-215.04-145.92-215.04Z"></path></svg>
                 </div>
 
-                <div title="Скопировать изображение" class="copy-img no-select">
-                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path fill-rule="evenodd" clip-rule="evenodd" d="M21 8C21 6.34315 19.6569 5 18 5H10C8.34315 5 7 6.34315 7 8V20C7 21.6569 8.34315 23 10 23H18C19.6569 23 21 21.6569 21 20V8ZM19 8C19 7.44772 18.5523 7 18 7H10C9.44772 7 9 7.44772 9 8V20C9 20.5523 9.44772 21 10 21H18C18.5523 21 19 20.5523 19 20V8Z"></path>
-                            <path d="M6 3H16C16.5523 3 17 2.55228 17 2C17 1.44772 16.5523 1 16 1H6C4.34315 1 3 2.34315 3 4V18C3 18.5523 3.44772 19 4 19C4.55228 19 5 18.5523 5 18V4C5 3.44772 5.44772 3 6 3Z"></path>
-                    </svg>
-                </div>
-
                 <div class="download-img no-select" title="Скачать изображение">
                     <svg viewBox="1 0 22 22" xmlns="http://www.w3.org/2000/svg">
                         <path id="Vector" d="M6 21H18M12 3V17M12 17L17 12M12 17L7 12" stroke-linejoin="round" stroke-width="3" stroke-linecap="round"></path>
                     </svg>
+                </div>
+
+                <div class="calendar" title="Добавить в календарь">
+<svg viewBox="0 0 24 24" style="fill: none; stroke-width: 3" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M3 10H21M7 3V5M17 3V5M6.2 21H17.8C18.9201 21 19.4802 21 19.908 20.782C20.2843 20.5903 20.5903 20.2843 20.782 19.908C21 19.4802 21 18.9201 21 17.8V8.2C21 7.07989 21 6.51984 20.782 6.09202C20.5903 5.71569 20.2843 5.40973 19.908 5.21799C19.4802 5 18.9201 5 17.8 5H6.2C5.0799 5 4.51984 5 4.09202 5.21799C3.71569 5.40973 3.40973 5.71569 3.21799 6.09202C3 6.51984 3 7.07989 3 8.2V17.8C3 18.9201 3 19.4802 3.21799 19.908C3.40973 20.2843 3.71569 20.5903 4.09202 20.782C4.51984 21 5.07989 21 6.2 21Z"></path></svg>
                 </div>
             </div>
 
@@ -42,10 +39,6 @@ const outputElementOrig = htmlToElement(`
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                         <path d="M13.85 22.25h-3.7c-.74 0-1.36-.54-1.45-1.27l-.27-1.89c-.27-.14-.53-.29-.79-.46l-1.8.72c-.7.26-1.47-.03-1.81-.65L2.2 15.53c-.35-.66-.2-1.44.36-1.88l1.53-1.19c-.01-.15-.02-.3-.02-.46 0-.15.01-.31.02-.46l-1.52-1.19c-.59-.45-.74-1.26-.37-1.88l1.85-3.19c.34-.62 1.11-.9 1.79-.63l1.81.73c.26-.17.52-.32.78-.46l.27-1.91c.09-.7.71-1.25 1.44-1.25h3.7c.74 0 1.36.54 1.45 1.27l.27 1.89c.27.14.53.29.79.46l1.8-.72c.71-.26 1.48.03 1.82.65l1.84 3.18c.36.66.2 1.44-.36 1.88l-1.52 1.19c.01.15.02.3.02.46s-.01.31-.02.46l1.52 1.19c.56.45.72 1.23.37 1.86l-1.86 3.22c-.34.62-1.11.9-1.8.63l-1.8-.72c-.26.17-.52.32-.78.46l-.27 1.91c-.1.68-.72 1.22-1.46 1.22zM6.5 12a5.5 5.5 0 1 0 11 0 5.5 5.5 0 1 0-11 0" fill-rule="evenodd"/>
                     </svg>
-                </div>
-
-                <div class="calendar" title="Добавить в календарь">
-<svg viewBox="0 0 24 24" style="fill: none; stroke-width: 3" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M3 10H21M7 3V5M17 3V5M6.2 21H17.8C18.9201 21 19.4802 21 19.908 20.782C20.2843 20.5903 20.5903 20.2843 20.782 19.908C21 19.4802 21 18.9201 21 17.8V8.2C21 7.07989 21 6.51984 20.782 6.09202C20.5903 5.71569 20.2843 5.40973 19.908 5.21799C19.4802 5 18.9201 5 17.8 5H6.2C5.0799 5 4.51984 5 4.09202 5.21799C3.71569 5.40973 3.40973 5.71569 3.21799 6.09202C3 6.51984 3 7.07989 3 8.2V17.8C3 18.9201 3 19.4802 3.21799 19.908C3.40973 20.2843 3.71569 20.5903 4.09202 20.782C4.51984 21 5.07989 21 6.2 21Z"></path></svg>
                 </div>
 
                 <span class="not-icon" style="flex: 1 1 0px"></span>
@@ -173,7 +166,6 @@ async function createAndInitOutputElement(
     const nameEl = outputElement.querySelector('.name');
     const imageEl = outputElement.querySelector('img');
     const delEl = outputElement.querySelector('.delete');
-    const copyImgEl = outputElement.querySelector('.copy-img');
     const viewPdfEl = outputElement.querySelector('.view-pdf');
     const viewImgEl = outputElement.querySelector('.view-img');
     const calendarEl = outputElement.querySelector('.calendar');
@@ -234,18 +226,6 @@ async function createAndInitOutputElement(
     })
     addClick2(downloadImgEl, 'dimg', async() => {
         downloadUrl(await getImage(), name + '.png');
-    })
-    addClick2(copyImgEl, 'cimg', async() => {
-        try {
-            const img = await getImage(true);
-            const obj = {};
-            obj[img.type] = img;
-            navigator.clipboard.write([new ClipboardItem(obj)])
-        } catch (error) {
-            const url = await getImage();
-            downloadUrl(url, name + '.png');
-            console.error(error);
-        }
     })
     addClick2(delEl, null, async() => {
         //TODO: add onbeforeunload
@@ -479,7 +459,7 @@ const css = `
     stroke: var(--primary-color);
 }
 
-.output-cont *.out-icons > *:not(.not-icon).copy-img {
+.output-cont *.out-icons > *:not(.not-icon).download-img {
     flex: 1 0 auto;
     display: flex;
     justify-content: center;
