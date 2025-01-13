@@ -4,7 +4,7 @@
     padding: 1em;
 }
 
-#start-date, #end-date {
+#year {
     appearance: none;
     border: none;
     outline: none;

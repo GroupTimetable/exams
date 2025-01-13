@@ -22,18 +22,24 @@
         <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: stretch">
             <div class="header">Экспорт расписания в календарь</div>
             <div class="content">
+                <div>
+                    1. Заполните данные о периоде обучения:
+                    <div style="padding-left: 2ch; padding-top: 0.1rem; line-height: 1.1lh">
+                        год <input type="text" maxlength="10" id="year">.
+                    </div>
+                </div>
                 <p>
-                    1. Скачайте файл расписания своей подгруппы:
+                    2. Скачайте файл расписания своей подгруппы:
                     <a href="javascript:;" id="file1" class="link">файл</a>
                 </p>
                 <p class="warning-text" style="display: none">
                 </p>
                 <p>
-                2. Создайте календарь для импорта: <a href="https://support.google.com/calendar/answer/37095?hl=ru" target="blank" class="link" style="white-space: nowrap;">Создание календаря в Google</a>,
+                3. Создайте календарь для импорта: <a href="https://support.google.com/calendar/answer/37095?hl=ru" target="blank" class="link" style="white-space: nowrap;">Создание календаря в Google</a>,
                 (Яндекс.Календарь создаёт автоматически)
                 </p>
                 <p>
-                    3. Импортируйте расписание в календарь:
+                    4. Импортируйте расписание в календарь:
                     <a class="link" href="https://calendar.google.com/calendar/u/0/r/settings/export" target="_blank" id="google-cal">Google Календарь</a>,
                     <a class="link" href="https://yandex.ru/support/calendar/common/create.html#import" target="_blank" id="yandex-cal">Яндекс.Календарь</a>
                 </p>

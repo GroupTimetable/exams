@@ -18,33 +18,18 @@ const params = (_ => {
 }
 )()
 
-const firstWeekEl = document.querySelector('#first-week')
-const startDateEl = document.querySelector('#start-date')
-const lastDateEl = document.querySelector('#end-date')
 
-startDateEl.value = dateToStr(new Date(params.dates[0]))
-lastDateEl.value = dateToStr(new Date(params.dates[1]))
+const yearEl = document.querySelector('#year')
+yearEl.value = new Date(params.dates[0]).getFullYear()
+
 
 document.querySelector('#file1').addEventListener('click', () => {
-    saveDoc(true, '_1группа')
+    saveDoc()
 })
 
-document.querySelector('#file2').addEventListener('click', () => {
-    saveDoc(false,  '_2группа')
-})
-
-function saveDoc(firstGroup, filename) {
+function saveDoc() {
     try {
-        const d1 = parseDate(startDateEl.value)
-        const d2 = parseDate(lastDateEl.value)
-
-        if(d1 == undefined || d2 == undefined) {
-            warningText.style = 'color: var(--error-color);';
-            warningText.innerText = "Ошибка, неправильный формат даты"
-            return
-        }
-
-        const [str, warn] = scheduleToICS(params.schedule, params.dates, params.scheme, !firstWeekEl.checked, firstGroup)
+        const [str, warn] = scheduleToICS(params.schedule, params.dayNames, parseInt(yearEl.value))
         if(warn) {
             warningText.style = 'color: var(--hint-color);';
             warningText.innerText = "Внимание: в расписании обнаружены пары, длящиеся не весь семестр, но в "
@@ -53,7 +38,7 @@ function saveDoc(firstGroup, filename) {
         const arr = new TextEncoder('utf-8').encode(str)
         const blob = new Blob([arr], { type: 'text/calendar' })
 
-        download(blob, params.filename + filename)
+        download(blob, params.filename)
 
         try { try {
             updateUserdataF('regDocumentUsed')(...params.userdata, 'cld')
@@ -77,11 +62,10 @@ function dateToICS(date, absolute) {
         + (absolute ? 'Z' : '')
 }
 
-function scheduleToICS(schedule, dates, scheme, firstWeekIsFirst/*first calendar week = first schedule week*/, isFirstGroup) {
+function scheduleToICS(schedule, dayNames, year) {
     const warnRegex = /\d+?\sнед..*?\d+?/
 
     let warn = false
-    const lessonOff = isFirstGroup ? 0 : 1;
     let ics = ''
 
     function line(str) {
@@ -101,37 +85,16 @@ function scheduleToICS(schedule, dates, scheme, firstWeekIsFirst/*first calendar
 
     const now = dateToICS(new Date(), true)
 
-    const until0 = new Date(dates[1])
-    until0.setHours(23)
-    until0.setMinutes(59)
-    until0.setSeconds(59)
-    const until = dateToICS(until0)
-
-    const dow0 = 'MOTUWETHFRSASU'
-    const startDOW = new Date(dates[0]).getUTCDay()
-
-    function addLesson(startMins, endMins, dayOfWeek, interval, firstWeek, uid, summary) {
+    function addLesson(date, time, summary, uid) {
         if(!warn && summary.match(warnRegex)) warn = true;
-        const start = new Date(dates[0])
-        const currentDay = start.getUTCDay();
-        const distance = (dayOfWeek+1 + 7 - currentDay) % 7;
-        start.setUTCDate(start.getUTCDate() + distance);
 
-        const onNextCalendarWeek = start.getUTCDay() < startDOW;
-        const onFirstScheduleWeek = onNextCalendarWeek ^ firstWeekIsFirst;
-        if(firstWeek != undefined && onFirstScheduleWeek ^ firstWeek) start.setUTCDate(start.getUTCDate() + 7)
+        const match = time.match(/(\d\d):(\d\d)/)
 
-        const end = new Date(start)
-        start.setUTCHours(0, startMins)
-        end.setUTCHours(0, endMins)
-
-        const dow = dow0.substring(dayOfWeek*2).substring(0, 2)
+        date = new Date(date)
+        date.setUTCHours(parseInt(match[1]), parseInt(match[2]))
 
         line('BEGIN:VEVENT')
-        line('DTSTART;TZID=/Europe/Moscow:' + dateToICS(start))
-        line('DTEND;TZID=/Europe/Moscow:' + dateToICS(end))
-        //UNTIL is not correct bc there is no? way to specify timezone for it
-        line(`RRULE:FREQ=WEEKLY;WKST=SU;UNTIL=${until};INTERVAL=${interval};BYDAY=${dow}`)
+        line('DTSTART;TZID=/Europe/Moscow:' + dateToICS(date))
         line('CREATED:' + now)
         line('DTSTAMP:' + now)
         line('UID:' + uid + '@grouptimetable.github.io')
@@ -141,36 +104,18 @@ function scheduleToICS(schedule, dates, scheme, firstWeekIsFirst/*first calendar
         line('END:VEVENT')
     }
 
-    const prevDayI = []
-
-    for(let i = 0; i < scheme.length; i++) for(let j = 0; j < scheme[i].length; j++) {
-        const dayI = scheme[i][j];
-        const day = schedule[dayI];
-
-        if(prevDayI.includes(dayI)) continue;
-        prevDayI.push(dayI)
+    for(let i = 0; i < schedule.length; i++) {
+        const day = schedule[i]
+        const match = dayNames[i].match(/(\d\d)\.(\d\d)/)
+        const date = new Date(Date.UTC(year, parseInt(match[2]) - 1, parseInt(match[1])))
 
         for(let j = 0; day && j < day.length; j++) {
             const lesson = day[j]
-            const l1 = lesson.lessons[lessonOff]
-            const l2 = lesson.lessons[lessonOff + 2]
-            if(l1 === l2 && l1.trim() !== '') addLesson(
-                lesson.sTime, lesson.eTime,
-                dayI, 1, undefined, 'D'+dayI+'L'+j+'G'+(isFirstGroup ? 1 : 2)+'T'+0,
-                l1
+            const l1 = lesson.lessons[0]
+            if(l1.trim() !== '') addLesson(
+                date, lesson.time, l1,
+                'D'+i+'L'+j+'G'+'T'+0,
             )
-            else {
-                if(l1.trim() !== '') addLesson(
-                    lesson.sTime, lesson.eTime,
-                    dayI, 2, true, 'D'+dayI+'L'+j+'G'+(isFirstGroup ? 1 : 2)+'T'+1,
-                    l1
-                )
-                if(l2.trim() !== '') addLesson(
-                    lesson.sTime, lesson.eTime,
-                    dayI, 2, false, 'D'+dayI+'L'+j+'G'+(isFirstGroup ? 1 : 2)+'T'+2,
-                    l2
-                )
-            }
         }
     }
 

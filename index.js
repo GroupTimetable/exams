@@ -781,7 +781,7 @@ async function processPDF(userdata, name, indices) {
         errorCount += itemInfo.errorCount
 
         updInfo({ msg: 'Достаём расписание из файла', progress: 0.2 })
-        const [schedule, dates] = makeSchedule(cont, page.view, contI);
+        const [schedule, dayNames, dates] = makeSchedule(cont, page.view, contI);
         updInfo({ msg: 'Создаём изображение расписания', progress: 0.3 })
 
         const renderer = createRecorderRenderer(createCanvasRenderer());
@@ -791,6 +791,7 @@ async function processPDF(userdata, name, indices) {
 
         updInfo({ msg: 'Создаём предпросмотр', progress: 0.4 });
         editParams.schedule = schedule
+        editParams.dayNames = dayNames
         editParams.dates = dates
         editParams.userdata = userdata
 

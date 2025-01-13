@@ -163,7 +163,7 @@ function findDaysOfWeekHours(cont, itemBs) {
         if(daysOfWeekShortenedLower.includes(shortDay) && dateRegex.test(rest)) {
             const arr = []
             arr.i = i
-            arr.name = str
+            arr.name = st
             days.push(arr)
             daysR = Math.max(daysR, itemBs[i].r)
         }
@@ -192,19 +192,36 @@ function intersects(a1, a2, b1, b2) {
 }
 
 function findDates(cont, bounds, colBounds) {
-    const datesRegex = /(^|.*?\s)(\d\d)\.(\d\d)\.(\d\d\d\d)(\s.*?\s|\s)(\d\d)\.(\d\d)\.(\d\d\d\d)(\s|$)/
+    const datesRegex = /\s?(\d\d)\.(\d\d)\.(\d\d\d\d)\s.*?\s(\d\d)\.(\d\d)\.(\d\d\d\d)/
 
+    let itemI = 0
+    for(; itemI < cont.length; itemI++) {
+        const item = cont[itemI]
+        if(item.str.toLowerCase().trim() == 'срок') {
+            break
+        }
+    }
+
+    if(itemI == cont.length) return
+
+    const itemBs = bounds[itemI]
+
+    let str
     for(let i = 0; i < cont.length; i++) {
         const item = cont[i]
         const bs = bounds[i]
-        if(bs.t > colBounds.t) continue;
-        if(!intersects(bs.l, bs.r, colBounds.l, colBounds.r)) continue;
-        const gs =  item.str.match(datesRegex)
-        if(gs) return [
-            new Date(gs[4], gs[3] - 1, gs[2]),
-            new Date(gs[8], gs[7] - 1, gs[6]),
-        ];
+        if(!intersects(bs.l, bs.r, colBounds.l, colBounds.r)) continue
+        if(!intersects(bs.b, bs.t, itemBs.b, itemBs.t)) continue
+
+        if(str) str = str + ' ' + item.str
+        else str = item.str
     }
+
+    const gs = (str || '').match(datesRegex)
+    if(gs) return [
+        new Date(gs[3], gs[2] - 1, gs[1]),
+        new Date(gs[6], gs[5] - 1, gs[4]),
+    ]
 }
 
 function bigCheckEmpty(curCol, otherCol, leftSide, f, yOff, table) {
@@ -361,7 +378,12 @@ function makeSchedule(cont, pageView, groupNameI) {
         }
     }
 
-    return [schedule, dates]
+    const dayNames = []
+    for(let i = 0; i < schedule.length; i++) {
+        dayNames.push(schedule[i].name)
+    }
+
+    return [schedule, dayNames, dates]
 }
 
 function checkValid(...params) {
@@ -589,42 +611,52 @@ async function renderSchedule(renderer, schedule, editParams) {
     const rowHeight = colWidth * rowRatio;
     const borderWidth = colWidth * borderFactor;
     const innerBorderWidth = colWidth * 2/500;
+    const dowTopHeight = rowHeight * 0.4
 
     const signatureHeight = 40, signaturePadding = 4;
     const signatureHeightFull = borderWidth*0.5 + signatureHeight + signaturePadding*2;
 
-    let maxRows = 0;
-    let firstRows = Infinity, lastRows = 0;
+    let maxHeight = 0;
+    let firstHeight = Infinity, lastHeight = 0;
+
+    const existing = []
+    for(let j = 0; j < schedule.length; j++) {
+        const day = schedule[j]
+        if(!day || !day.length) continue
+        existing.push(j)
+    }
 
     function addColumn(begin, end) {
         const newCol = []
         let curRows = 0;
 
         for(let j = begin; j < end; j++) {
-            const day = schedule[j]
-            if(!day || !day.length) continue
+            const index = existing[j]
+            if(index == null) break
+            const day = schedule[index]
             curRows += day.length
-            newCol.push(j)
+            newCol.push(index)
         }
 
         if(curRows > 0) {
-            if(dowOnTop) curRows += newCol.length;
+            curHeight = curRows * rowHeight
+            if(dowOnTop) curHeight += dowTopHeight * newCol.length
 
-            lastRows = curRows;
-            if(firstRows === Infinity) firstRows = curRows;
-            if(curRows > maxRows) maxRows = curRows;
+            lastHeight = curHeight;
+            if(firstHeight === Infinity) firstHeight = curHeight;
+            if(curHeight > maxHeight) maxHeight = curHeight;
             renderPattern.push(newCol)
         }
     }
-    const inOneCol = Math.max(1, Math.floor(schedule.length / columns))
+    const inOneCol = Math.max(1, Math.round(existing.length / columns))
     for(let i = 0; i < columns - 1; i++) {
         addColumn(i * inOneCol, i * inOneCol + inOneCol)
     }
-    addColumn((columns - 1) * inOneCol, schedule.length)
+    addColumn((columns - 1) * inOneCol, existing.length)
 
-    const rowMaxHeight = maxRows * rowHeight;
-    const heightIfSignFirst = Math.max(rowMaxHeight, firstRows * rowHeight + signatureHeightFull);
-    const heightIfSignLast  = Math.max(rowMaxHeight, lastRows  * rowHeight + signatureHeightFull);
+    const rowMaxHeight = maxHeight
+    const heightIfSignFirst = Math.max(rowMaxHeight, firstHeight + signatureHeightFull);
+    const heightIfSignLast  = Math.max(rowMaxHeight, lastHeight + signatureHeightFull);
 
     const pageHeight = Math.min(heightIfSignFirst, heightIfSignLast);
     const pageWidth = colWidth * renderPattern.length;
@@ -632,7 +664,7 @@ async function renderSchedule(renderer, schedule, editParams) {
     const groupSize = { w: colWidth, h: colWidth * rowRatio };
 
     const ch = (num) => !(num >= 1 && num < Infinity)
-    if(!(maxRows > 0) || ch(pageWidth) || ch(pageHeight)) {
+    if(!(maxHeight > 0) || ch(pageWidth) || ch(pageHeight)) {
         await renderer.emptyInit();
         return;
     }
@@ -659,19 +691,19 @@ async function renderSchedule(renderer, schedule, editParams) {
             const index = renderPattern[i][j];
             if(index == undefined || schedule[index] == undefined) continue;
             const day = schedule[index];
-            const rowsCount = day.length + (dowOnTop ? 1 : 0);
+            const rowsCount = day.length
 
             let x = startX;
             let y = startY;
             let w = startW;
             const h = groupSize.h - innerBorderOffset / rowsCount;
-            const dayH = rowsCount * groupSize.h;
+            const dayH = rowsCount * groupSize.h + (dowOnTop ? dowTopHeight : 0);
 
             const dowText = day.name
             if(dowOnTop) {
-                dowArray.push({ text: dowText, x, y, w, h })
-                renderer.drawRect(x, y, w, h)
-                y += h;
+                dowArray.push({ text: dowText, x, y, w, h: dowTopHeight })
+                renderer.drawRect(x, y, w, dowTopHeight)
+                y += dowTopHeight;
             }
             else {
                 dowArray.push({ text: dowText, x, y, w: dowColWidth, h: dayH - innerBorderOffset })
