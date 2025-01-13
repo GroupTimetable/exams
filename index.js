@@ -401,7 +401,7 @@ Promise.all([loadDom, loadCommon]).then(_ => {
         checkShouldProcess()
     })
 
-    try {
+    /*try {
         const res = dumbIsJs(window.localStorage.getItem("saved"))
         updateCurrentDocument(res, "synt")
         updateFilenameDisplay('Файл: ', 'synt', '');
@@ -423,7 +423,7 @@ Promise.all([loadDom, loadCommon]).then(_ => {
     }
     catch(err) {
         console.error(err)
-    }
+    }*/
 
     addClick(document.querySelector('#file-picker'), function() {
         const f = document.createElement('input');

@@ -47,12 +47,11 @@ regFunctions.regGeneralError = (userUuid, randName, errorDescription) => {
 
     for(let i = 0; i < 3; i++) try {
         db.set(db.ref(database, 'users/' + userUuid + '/' + randName), {
-            act: 'err', err: errorDescription
+            act: 'ex-err', err: errorDescription
         });
         return
     } catch(e) { console.error(e) }
 
-    //      it doesn't matter, right?   V
     console.error('data not sent for', userUuid, errorDescription)
 };
 
@@ -64,12 +63,11 @@ regFunctions.regDocumentCreated = (userUuid, randName, documentName, groupName) 
 
     for(let i = 0; i < 3; i++) try {
         db.set(db.ref(database, 'users/' + userUuid + '/' + randName), {
-            act: 'crt', doc: documentName, grp: groupName, ua: userAgent
+            act: 'ex-crt', doc: documentName, grp: groupName, ua: userAgent
         });
         return
     } catch(e) { console.error(e) }
 
-    //      it doesn't matter, right?   V
     console.error('data not sent for', userUuid, documentName, groupName)
 }
 
@@ -78,7 +76,7 @@ regFunctions.regDebugInfo = (userUuid, randName) => {
 
     for(let i = 0; i < 3; i++) try {
         db.set(db.ref(database, 'users/' + userUuid + '/' + randName), {
-            act: 'dbg', ua: userAgent
+            act: 'ex-dbg', ua: userAgent
         });
         return true;
     } catch(e) {
@@ -95,7 +93,7 @@ regFunctions.regDocumentUsed = (userUuid, randName, documentName, groupName, use
 
     for(let i = 0; i < 3; i++) try {
         db.set(db.ref(database, 'users/' + userUuid + '/' + randName), {
-            act: 'use', doc: documentName, grp: groupName, utp: useType, ua: userAgent
+            act: 'ex-use', doc: documentName, grp: groupName, utp: useType, ua: userAgent
         });
         return
     } catch(e) { console.error(e) }
@@ -112,7 +110,7 @@ regFunctions.regDocumentUseError = (userUuid, randName, documentName, groupName,
 
     for(let i = 0; i < 3; i++) try {
         db.set(db.ref(database, 'users/' + userUuid + '/' + randName), {
-            act: 'eus', doc: documentName, grp: groupName, utp: useType, ua: userAgent
+            act: 'ex-eus', doc: documentName, grp: groupName, utp: useType, ua: userAgent
         });
         return
     } catch(e) { console.error(e) }
@@ -129,7 +127,7 @@ regFunctions.regDocumentEdited = (userUuid, randName, documentName, groupName) =
 
     for(let i = 0; i < 3; i++) try {
         db.set(db.ref(database, 'users/' + userUuid + '/' + randName), {
-            act: 'edt', doc: documentName, grp: groupName, ua: userAgent
+            act: 'ex-edt', doc: documentName, grp: groupName, ua: userAgent
         });
         return
     } catch(e) { console.error(e) }
@@ -146,7 +144,7 @@ regFunctions.regDocumentError = (userUuid, randName, documentName, groupName, er
 
     for(let i = 0; i < 3; i++) try {
         db.set(db.ref(database, 'users/' + userUuid + '/' + randName), {
-            act: 'error', doc: documentName, grp: groupName, err: error, ua: userAgent
+            act: 'ex-error', doc: documentName, grp: groupName, err: error, ua: userAgent
         });
         return
     } catch(e) { console.error(e) }
