@@ -1,14 +1,3 @@
-const daysOfWeek = [
-    "Понедельник",
-    "Вторник",
-    "Среда",
-    "Четверг",
-    "Пятница",
-    "Суббота",
-    "Воскресенье"
-];
-
-const daysOfWeekLower = daysOfWeek.map(a => a.toLowerCase())
 const daysOfWeekShortened = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 const daysOfWeekShortenedLower = daysOfWeekShortened.map(it => it.toLowerCase())
 const mergeLeading = 0.2, mergeSpace = 0.1;
@@ -131,33 +120,6 @@ function findColumnBounds(cont, itemBs, itemI) {
     else throw "Невозможно определить вертикальные границы расписания, [имя группы] = " + itemI + "/" + cont.length;
 }
 
-function parseTime(str) {
-    if(str.length < 4) return;
-    const d = ':'.charCodeAt(0);
-
-    let i = 0;
-    let hour = 0;
-    for(; i < 2; i++) {
-        const ch = str.charCodeAt(i);
-        if(ch === d) break;
-        else if(ch < '0'.charCodeAt(0) || ch > '9'.charCodeAt(0)) return;
-        else hour = hour*10 + (ch - '0'.charCodeAt(0));
-    }
-    if(str.charCodeAt(i) !== d) return;
-    i++;
-
-    let j = 0;
-    let minute = 0;
-    for(; i < str.length; i++, j++) {
-        const ch = str.charCodeAt(i);
-        if(ch < '0'.charCodeAt(0) || ch > '9'.charCodeAt(0)) return;
-        else minute = minute*10 + (ch - '0'.charCodeAt(0));
-    }
-    if(j !== 2) return;
-
-    return hour * 60 + minute;
-}
-
 function calcItemBounds(item) {
     const h = 1;
     const w = item.width / item.height;
@@ -188,33 +150,19 @@ function calcItemBounds(item) {
     return bs
 }
 
+const dateRegex = /^\d\d\.\d\d$/
 
 function findDaysOfWeekHours(cont, itemBs) {
-    const dow = Array(daysOfWeek.length);
     let hoursR = -Infinity;
     const hours = [];
     for(let i = 0; i < cont.length; i++) {
-        const str = cont[i].str.toLowerCase();
-        for(let j = 0; j < daysOfWeek.length; j++) {
-            if(str !== daysOfWeekLower[j]) continue;
-            if(dow[j] != undefined) throw ["День недели " + j + " обнаружен дважды", "[дубликат] = " + i + "/" + cont.length];
-
-            dow[j] = i;
-            break;
-        }
-
-        if(i + 1 < cont.length) {
-            const h = parseTime(cont[i].str);
-            if(h != undefined) {
-                for(let j = 1; j < 3; j++) {
-                    let h2 = parseTime(cont[i+j].str);
-                    if(h2 != undefined) {
-                        hours.push({ first: i, last: i+j, sTime: h, eTime: h2 });
-                        hoursR = Math.max(hoursR, itemBs[i].r, itemBs[i+j].r);
-                        break
-                    }
-                }
-            }
+        const str = cont[i].str.trim()
+        const st = str.toLowerCase()
+        const shortDay = st.substring(0, 2).trim()
+        const rest = st.substring(2).trim()
+        if(daysOfWeekShortenedLower.includes(shortDay) && dateRegex.test(rest)) {
+            hours.push({ i: i, time: str })
+            hoursR = Math.max(hoursR, itemBs[i].r)
         }
     }
 
@@ -222,40 +170,22 @@ function findDaysOfWeekHours(cont, itemBs) {
 
     let hoursT, hoursHeight;
     {
-        const b00 = itemBs[hours[0].first]
-        const b01 = itemBs[hours[0].last]
-        const b10 = itemBs[hours[1].first]
-        const b11 = itemBs[hours[1].last]
+        const b0 = itemBs[hours[0].i]
+        const b1 = itemBs[hours[1].i]
 
-        const c0 = 0.5 * (Math.min(b00.b, b01.b) + Math.max(b00.t, b01.t)) //center of the 1st hours label
-        const c1 = 0.5 * (Math.min(b10.b, b11.b) + Math.max(b10.t, b11.t)) // --- 2nd ---
+        const c0 = 0.5 * (b0.b + b0.t) //center of the 1st hours label
+        const c1 = 0.5 * (b1.b + b1.t) // --- 2nd ---
 
         hoursHeight = Math.abs(c1 - c0);
         hoursT = c0 + hoursHeight * 0.5;
     }
 
-    const days = Array(dow.length);
-    let hourI = 0;
-    for(let d = 0; d < dow.length; d++) {
-        if(dow[d] == undefined) continue;
-        const dayHours = [];
-        days[d] = dayHours;
-
-        let nextDayStart = cont.length;
-        for(let j = d+1; j < dow.length; j++) if(dow[j] != undefined) {
-            nextdayStart = dow[j].i;
-            break;
-        }
-
-        let prevTime;
-        while(hourI < hours.length && hours[hourI].last <= nextDayStart && (prevTime == undefined || hours[hourI].sTime > prevTime)) {
-            prevTime = hours[hourI].eTime;
-            dayHours.push(hours[hourI]);
-            hourI++;
-        }
+    const days = Array(hours.length);
+    for(let i = 0; i < hours.length; i++) {
+        days[i] = [hours[i]]
     }
 
-    return { days, hoursC: hourI, hoursR, hoursT, hoursHeight };
+    return { days, hoursC: hours.length, hoursR, hoursT, hoursHeight };
 }
 
 /*[a1; a2] & (b1, b2)*/
@@ -312,7 +242,7 @@ function bigCheckEmpty(curCol, otherCol, leftSide, f, yOff, table) {
     return true
 }
 
-function makeSchedule(cont, pageView, groupNameI, bigFieldsInclude) {
+function makeSchedule(cont, pageView, groupNameI) {
     if(cont.length < 1) throw 'Unreachable'
 
     const itemBs = Array(cont.length);
@@ -420,60 +350,6 @@ function makeSchedule(cont, pageView, groupNameI, bigFieldsInclude) {
     }
     if(lastGroup !== undefined) writeGroup(lastGroup);
 
-    //fix big fields
-    const bigFieldsCands = [];
-    for(let i = 0; i < bigFields_.length; i++) {
-        const f = bigFields_[i];
-        const inCurCol = intersects(f.l, f.r, colBounds.l, colBounds.r);
-        if(inCurCol || bigFieldsInclude.includes(i)) {
-            const cell = table[f.y*colC + curColI]
-            //note: make big fields take all horisontal space if allowed
-            const lt = f.t && cell[0] == undefined, lb = f.b && cell[2] == undefined;
-            const rt = f.t && cell[1] == undefined, rb = f.b && cell[3] == undefined;
-            addToCell(cell, [lt, rt, lb, rb], joinItems(f.items), [f.x, f.y]);
-        }
-        else {
-            const leftSide = curColI > f.x;
-
-            const fieldCenter = (f.l + f.r) * 0.5;
-            // inclusive opposite column
-            const otherBound = 2*fieldCenter - colBounds.r;
-            const otherColF = (otherBound - hoursR) / colWidth;
-            const otherCol = Math.round(otherColF);
-            const otherBoundValid = Math.abs(otherCol - otherColF) <= errX
-                && otherCol >= 0 && otherCol < colC;
-
-            if(otherBoundValid) {
-                const empty = bigCheckEmpty(
-                    curColI, otherCol, leftSide,
-                    f, f.y*colC, table,
-                );
-                // Note: table cell may be occupied later by other big fields
-                if(empty) bigFieldsCands.push(i);
-            }
-
-            //console.log(
-            //    "where:", f.y,
-            //    ",other bound:", otherCol, otherBoundValid,
-            //    ",empty:", empty
-            //);
-
-        }
-    }
-
-    const bigFields = [];
-    for(let i = 0; i < bigFieldsCands.length; i++) {
-        const fI = bigFieldsCands[i];
-        const f = bigFields_[fI];
-        const cell = table[f.y*colC + curColI];
-        const leftSide = curColI > f.x;
-        const hOff = leftSide ? 0 : 1;
-        if((!f.t || cell[0 + hOff] == undefined) && (!f.b || cell[2 + hOff] == undefined)) {
-            const dayHour = rowDayHour[f.y]
-            bigFields.push([dayHour[0], days[dayHour[0]][dayHour[1]].sTime, f.t, f.b, fI])
-        }
-    }
-
     //remove trailing empty lessons
     //? if day is completely empty => set to undefined ?
     for(let i = rowDayHour.length-1; i >= 0; i--) {
@@ -487,12 +363,12 @@ function makeSchedule(cont, pageView, groupNameI, bigFieldsInclude) {
         if(!empty) {
             for(let i = 0; i < cell.length; i++) cell[i] ??= '';
             const lesson = days[dayI][lessonI];
-            day[lessonI] = { sTime: lesson.sTime, eTime: lesson.eTime, lessons: cell };
+            day[lessonI] = { time: lesson.time, lessons: cell };
         }
         else day.pop()
     }
 
-    return [schedule, dates, bigFields];
+    return [schedule, dates]
 }
 
 function checkValid(...params) {
@@ -633,14 +509,6 @@ const textBreak = new (function() {
     Object.defineProperty(this, 'last', { get: () => objs[+lastI] });
 })()
 
-function minuteOfDayToString(it) {
-    return Math.floor(it/60) + ":" + (it%60).toString().padStart(2, '0')
-}
-
-function getLessonTimeTexts(lesson) {
-    return [minuteOfDayToString(lesson.sTime), "–", minuteOfDayToString(lesson.eTime)]
-}
-
 function calcFontSizeForBoundsSingle(renderer, text, w, h, widths/*out*/) {
     const textWidth = renderer.textWidth(text);
     // note: line height is font size if only 1 line
@@ -719,8 +587,8 @@ function drawLessons(textArr, yellowArr, renderer, lesson, x, y, w, h) {
 }
 
 //border factor is used inaccurately, but the difference should not be that big
-async function renderSchedule(renderer, schedule, origPattern, editParams) {
-    const { rowRatio, borderFactor, drawBorder, dowOnTop } = editParams
+async function renderSchedule(renderer, schedule, editParams) {
+    const { rowRatio, borderFactor, drawBorder, dowOnTop, columns } = editParams
 
     const colWidth = 500
     const renderPattern = []
@@ -734,18 +602,18 @@ async function renderSchedule(renderer, schedule, origPattern, editParams) {
 
     let maxRows = 0;
     let firstRows = Infinity, lastRows = 0;
-    for(let i = 0; i < origPattern.length; i++) {
+
+    function addColumn(begin, end) {
         const newCol = []
         let curRows = 0;
-        for(let j = 0; j < origPattern[i].length; j++) {
-            const index = origPattern[i][j];
-            if(index === -1) continue;
-            const day = schedule[index];
-            if(!day || !day.length) continue;
 
-            curRows += day.length;
-            newCol.push(index)
+        for(let j = begin; j < end; j++) {
+            const day = schedule[j]
+            if(!day || !day.length) continue
+            curRows += day.length
+            newCol.push(j)
         }
+
         if(curRows > 0) {
             if(dowOnTop) curRows += newCol.length;
 
@@ -755,6 +623,12 @@ async function renderSchedule(renderer, schedule, origPattern, editParams) {
             renderPattern.push(newCol)
         }
     }
+    const inOneCol = Math.max(1, Math.floor(schedule.length / columns))
+    for(let i = 0; i < columns - 1; i++) {
+        addColumn(i * inOneCol, i * inOneCol + inOneCol)
+    }
+    addColumn((columns - 1) * inOneCol, schedule.length)
+    console.log(renderPattern)
 
     const rowMaxHeight = maxRows * rowHeight;
     const heightIfSignFirst = Math.max(rowMaxHeight, firstRows * rowHeight + signatureHeightFull);
@@ -774,7 +648,6 @@ async function renderSchedule(renderer, schedule, origPattern, editParams) {
     await renderer.init(pageWidth, pageHeight)
 
     const dowArray = []
-    const timeArr = []
     const yellowArr = []
     const lessonsArr = []
     const innerBorderOffset = (drawBorder
@@ -782,7 +655,6 @@ async function renderSchedule(renderer, schedule, origPattern, editParams) {
         : borderWidth + innerBorderWidth); // for both sides
     const startW = groupSize.w - innerBorderOffset;
     const dowColWidth = startW * 0.1;
-    const timeColWidth = dowColWidth;
 
     renderer.setupRect(innerBorderWidth, false)
     for(let i = 0; i < renderPattern.length; i++) {
@@ -801,7 +673,7 @@ async function renderSchedule(renderer, schedule, origPattern, editParams) {
             const h = groupSize.h - innerBorderOffset / rowsCount;
             const dayH = rowsCount * groupSize.h;
 
-            const dowText = daysOfWeek[index]
+            const dowText = day[0].time
             if(dowOnTop) {
                 dowArray.push({ text: dowText, x, y, w, h })
                 renderer.drawRect(x, y, w, h)
@@ -814,14 +686,10 @@ async function renderSchedule(renderer, schedule, origPattern, editParams) {
                 w -= dowColWidth;
             }
 
-            const lessonW = w - timeColWidth;
             for(let i = 0; i < day.length; i++) {
                 const lesson = day[i]
                 const ly = y + i*h;
-                renderer.drawRect(x, ly, timeColWidth, h)
-                const texts = getLessonTimeTexts(lesson)
-                timeArr.push({ texts, x, y: ly, w: timeColWidth, h })
-                drawLessons(lessonsArr, yellowArr, renderer, lesson, x + timeColWidth, ly, lessonW, h)
+                drawLessons(lessonsArr, yellowArr, renderer, lesson, x, ly, w, h)
             }
 
             startY += dayH;
@@ -909,19 +777,6 @@ async function renderSchedule(renderer, schedule, origPattern, editParams) {
 
     renderer.setupText(false);
 
-    for(let i = 0; i < timeArr.length; i++) {
-        const it = timeArr[i];
-        const t = it.texts;
-        const size = calcFontSizeForBounds(
-            renderer,
-            t,
-            (it.w - innerBorderWidth) * 0.9,
-            (it.h - innerBorderWidth) * 0.9,
-            widths
-        );
-        drawTextCentered(renderer, t, size, it.x + it.w*0.5, it.y + it.h*0.5, widths);
-    }
-
     for(let i = 0; i < lessonsArr.length; i++) {
         const { text, x, y, w, h } = lessonsArr[i];
 
@@ -945,9 +800,11 @@ async function renderSchedule(renderer, schedule, origPattern, editParams) {
         }
 
         const res = textBreak.best;
+        renderer.setImportant(!text.toLowerCase().includes('консультация'))
         drawTextCentered(renderer, res.texts, res.fontSize, x + w*0.5, y + h*0.5, res.lineWidths);
     }
 
+    renderer.setupText(false);
     renderer.setFontSize(signFontSize);
     renderer.drawText(signText, signX, signY);
 

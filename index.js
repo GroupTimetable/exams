@@ -148,18 +148,22 @@ const genSettings = {}
 const createGenSettings = wrapDep(Promise.all([loadDom, loadCommon]).then(_ => {
     const genPopupHTML = htmlToElement(`
 <div>
-    <div style="margin-bottom: 0.6rem;">Расположение дней:</div>
-    <div class="days-scheme" contenteditable="true" style="border:none;outline:none; border-bottom: 1px solid white;
-        white-space: nowrap; width: 100%; min-height: 1rem; display: inline-block; font-family: monospace; font-size: 1.0rem">
-        пн чт<br>вт пт<br>ср сб
-    </div>
 
-    <div style="display: flex; margin-top: 0.9em; gap: 0.2em;">
+    <div style="display: flex; gap: 0.2em;">
         <div class="gen-settings-switch gen-settings-prev no-select">
             <div><svg xmlns="http://www.w3.org/2000/svg" viewBox="-.2 -.2 1.4 1.4"><path d="M0 .75L.5 .25L1 0.75"></path></svg></div>
         </div>
 
         <div style="display: grid; grid-template-columns: auto auto">
+            <span style="text-align: right;">Колонок:</span>
+            <span style="display: flex;align-items: baseline;">
+                &nbsp;
+                <input class="columns-input" type="number" style="
+                    text-align: right; font-size: 1em; color: white;
+                    border-bottom: 0.1rem solid white;
+                    padding: 0; padding-right: 0.1em; width: 6ch;">
+            </span>
+
             <span style="text-align: right;">Высота&nbsp;строки:</span>
             <span style="display: flex;align-items: baseline;">
                 &nbsp;
@@ -198,15 +202,15 @@ const createGenSettings = wrapDep(Promise.all([loadDom, loadCommon]).then(_ => {
     `)
 
     genSettings.popupEl = genPopupHTML
-    genSettings.scheduleLayoutEl = genPopupHTML.querySelector('.days-scheme')
+    genSettings.columnsInputEl = genPopupHTML.querySelector('.columns-input')
     genSettings.heightEl = genPopupHTML.querySelector('.height-input')
     genSettings.borderSizeEl = genPopupHTML.querySelector('.border-input')
     genSettings.borderTypeEl = genPopupHTML.querySelector('.border-color')
     genSettings.dowPositionEl = genPopupHTML.querySelector('.dow-position')
 
     const savedSettings = [
-        [(1/5.2 * 100).toFixed(2), '10', true, false],
-        [(1/5.2 * 100).toFixed(2), '20', false, true],
+        [2, (1/3.5 * 100).toFixed(2), '10', true, false],
+        [2, (1/3.5 * 100).toFixed(2), '20', false, true],
     ]
     let curSettings = 0;
 
@@ -218,21 +222,24 @@ const createGenSettings = wrapDep(Promise.all([loadDom, loadCommon]).then(_ => {
         genSettings.dowOnTop = value
         genSettings.dowPositionEl.innerText = value ? 'сверху' : 'сбоку'
     }
+    function updColumns(value) { genSettings.columnsInputEl.value = value }
     function updHeight(value) { genSettings.heightEl.value = value; }
     function updBorderSize(value) { genSettings.borderSizeEl.value = value; }
     function setFromSettings() {
         const s = savedSettings[curSettings]
-        updHeight(s[0])
-        updBorderSize(s[1])
-        updBorderCol(s[2])
-        updDowOnTop(s[3])
+        updColumns(s[0])
+        updHeight(s[1])
+        updBorderSize(s[2])
+        updBorderCol(s[3])
+        updDowOnTop(s[4])
     }
     function updSettings(newSettings) {
         const s = savedSettings[curSettings]
-        s[0] = genSettings.heightEl.value
-        s[1] = genSettings.borderSizeEl.value
-        s[2] = genSettings.drawBorder
-        s[3] = genSettings.dowOnTop
+        s[0] = genSettings.columnsInputEl.value
+        s[1] = genSettings.heightEl.value
+        s[2] = genSettings.borderSizeEl.value
+        s[3] = genSettings.drawBorder
+        s[4] = genSettings.dowOnTop
         if(newSettings === -1) curSettings = savedSettings.length - 1
         else if(newSettings === savedSettings.length) curSettings = 0
         else curSettings = newSettings
@@ -354,7 +361,7 @@ loadDom.then(_ => {
         <span style="color: var(--primary-color);">изображение</span>,
         <span style="color: var(--primary-color);">календарь</span><svg viewBox="0 0 24 24" style="margin-left: 0.1em;vertical-align: middle;height: 1rem;stroke: var(--primary-color);fill: none;stroke-width: 3" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M3 10H21M7 3V5M17 3V5M6.2 21H17.8C18.9201 21 19.4802 21 19.908 20.782C20.2843 20.5903 20.5903 20.2843 20.782 19.908C21 19.4802 21 18.9201 21 17.8V8.2C21 7.07989 21 6.51984 20.782 6.09202C20.5903 5.71569 20.2843 5.40973 19.908 5.21799C19.4802 5 18.9201 5 17.8 5H6.2C5.0799 5 4.51984 5 4.09202 5.21799C3.71569 5.40973 3.40973 5.71569 3.21799 6.09202C3 6.51984 3 7.07989 3 8.2V17.8C3 18.9201 3 19.4802 3.21799 19.908C3.40973 20.2843 3.71569 20.5903 4.09202 20.782C4.51984 21 5.07989 21 6.2 21Z"></path></svg>
         и <span style="color: var(--primary-color);">PDF-файл</span><svg xmlns="http://www.w3.org/2000/svg" viewBox="-100 -100 2100 2100" stroke-width="150" style=" margin-left: 0.1rem; height: 1rem; vertical-align: middle; fill: var(--primary-color); stroke: var(--primary-color); stroke-width: 150; "><path d="M1251.654 0c44.499 0 88.207 18.07 119.718 49.581l329.223 329.224c31.963 31.962 49.581 74.54 49.581 119.717V1920H169V0Zm-66.183 112.941H281.94V1807.06h1355.294V564.706H1185.47V112.94Zm112.94 23.379v315.445h315.445L1298.412 136.32Z"></path> <path d="M900.497 677.67c26.767 0 50.372 12.65 67.991 37.835 41.901 59.068 38.965 121.976 23.492 206.682-5.308 29.14.113 58.617 16.263 83.125 22.814 34.786 55.68 82.673 87.981 123.219 23.718 29.93 60.198 45.854 97.13 40.885 23.718-3.276 52.292-5.986 81.656-5.986 131.012 0 121.186 46.757 133.045 89.675 6.55 25.976 3.275 48.678-10.165 65.506-16.715 22.701-51.162 34.447-101.534 34.447-55.793 0-74.202-9.487-122.767-24.96-27.445-8.81-55.906-10.617-83.69-3.275-55.453 14.456-146.936 36.48-223.284 46.983-40.772 5.647-77.816 26.654-102.438 60.875-55.454 76.8-106.842 148.518-188.273 148.518-21.007 0-40.32-7.567-56.244-22.701-23.492-23.492-33.544-49.581-28.574-79.85 13.778-92.95 128.075-144.79 196.066-182.625 16.037-8.923 28.687-22.589 36.592-39.53l107.86-233.223c7.68-16.377 10.051-34.56 7.228-52.518-12.537-79.059-31.06-211.99 18.748-272.075 10.955-13.44 26.09-21.007 42.917-21.007Zm20.556 339.953c-43.257 126.607-119.718 264.282-129.996 280.32 92.273-43.37 275.916-65.28 275.916-65.28-92.386-88.998-145.92-215.04-145.92-215.04Z"></path></svg>
-        занятий своей группы из общего расписания
+        экзаменационной сессии своей группы из общего расписания
     `})
 
     new ResizeObserver(() => resizeProgressBar(curStatus.progress, true)).observe(dom.groupBarEl)
@@ -393,6 +400,30 @@ Promise.all([loadDom, loadCommon]).then(_ => {
     addClick(dom.startButtonEl, _ => {
         checkShouldProcess()
     })
+
+    try {
+        const res = dumbIsJs(window.localStorage.getItem("saved"))
+        updateCurrentDocument(res, "synt")
+        updateFilenameDisplay('Файл: ', 'synt', '');
+        let nameS
+        try { nameS = dom.groupInputEl.value.trim().split('$'); }
+        catch(err) { console.error(err) }
+
+        const startTime = performance.now()
+        processPDF([], nameS[0].trim(), [])
+            .catch(e => {
+                printScheduleError(e)
+            }) // same in loadFromListFiles()
+            .finally(() => {
+                const endTime = performance.now()
+                console.log(`call took ${endTime - startTime} milliseconds`)
+                dom.startButtonEl.removeAttribute('data-pending')
+                processing = false;
+            })
+    }
+    catch(err) {
+        console.error(err)
+    }
 
     addClick(document.querySelector('#file-picker'), function() {
         const f = document.createElement('input');
@@ -591,6 +622,27 @@ async function updateCurrentDocument(fileContent, filename) {
     })
 }
 
+const map = '0123456789ABCDEF'
+function jsIsDumb(arrayBuffer) {
+    const dv = new DataView(arrayBuffer)
+    let res = ''
+    for(let i = 0; i < arrayBuffer.byteLength; i++) {
+        res += map[dv.getUint8(i, true) & 0xf]
+        res += map[dv.getUint8(i, true) >> 4]
+    }
+    return res
+}
+
+function dumbIsJs(str) {
+    const res = new ArrayBuffer(str.length / 2)
+    const dv = new DataView(res)
+    for(let i = 0; i < str.length; i+=2) {
+        const b = map.indexOf(str[i]) + (map.indexOf(str[i + 1]) << 4)
+        dv.setUint8(i / 2, b, true)
+    }
+    return res
+}
+
 async function loadFromListFiles(list) {
     if(list.length === 0) { //if you drop files fast enough sometimes files list would be empty
         if(!processing) updError({ msg: 'Не удалось получить файлы. Попробуйте ещё раз', progress: 1 });
@@ -638,6 +690,7 @@ async function loadFromListFiles(list) {
     }
 
     updateCurrentDocument(fileContent, filename)
+    window.localStorage.setItem("saved", jsIsDumb(fileContent))
 }
 
 function updateFilenameDisplay(fileType, filename, href) {
@@ -657,35 +710,6 @@ function readElementText(element) {
     return innerTextHack.innerText
 }
 
-function warningNames(bigFields, days) {
-    let prevDay
-    let warningText = ''
-    for(let i = 0; i < bigFields.length; i++) {
-        const f = bigFields[i]
-        const day = f[0], hour = f[1], ch = f[2], z = f[3], index = f[4];
-        if(days && !days.has(day)) continue
-        warningText += '; ' + daysOfWeekShortened[day] + '-' + minuteOfDayToString(hour)
-            + '-' + (ch ? 'ч' : '') + (z ? 'з' : '') + ' ($' + index + ')';
-        prevDay = day;
-    }
-    return warningText
-}
-
-function makeWarningText(schedule, scheme, bigFields) {
-    if(!bigFields.length) return ''
-
-    const days = new Set()
-    for(let i = 0; i < scheme.length; i++) for(let j = 0; j < scheme[i].length; j++) days.add(scheme[i][j])
-
-    const warningText = warningNames(bigFields, days)
-
-    if(warningText === '') return ''
-    else return "Возможно пропущены уроки: " + warningText.substring(2)
-        + ". Чтобы добавить их в расписание, допишите текст в скобках к имени группы, напр. ИМгр-123 $0 $2 $39."
-        + " Также вы можете отредактировать расписание вручную, нажав на кнопку с карандашом на изображении"
-        + " или <a href='./help-page.html' target='blank' class='link'>написать сюда</a>.";
-}
-
 window.updateUserdataF ??= () => () => { console.error('No function defined') }
 
 function __load_test() { import('./test.js'); }
@@ -702,15 +726,16 @@ loadDependencies.catch((e) => {
 })
 
 function getEditParams() {
+    const columns = parseInt(genSettings.columnsInputEl.value)
     const rowRatio = Number(genSettings.heightEl.value) / 100;
     const borderFactor = Number(genSettings.borderSizeEl.value) / 1000;
+    if(!(columns > 0 && columns < 100)) throw ['энеправильное значение колонок', genSettings.columnsInputEl.value]
     if(!(rowRatio < 1000 && rowRatio > 0.001)) throw ['неправильное значение высоты строки', genSettings.heightEl.value];
     if(!(borderFactor < 1000 && borderFactor >= 0)) throw ['неправильное значение ширины границы', genSettings.borderSizeEl.value];
     const drawBorder = genSettings.drawBorder;
     const dowOnTop = genSettings.dowOnTop;
-    const scheme = readScheduleScheme(readElementText(genSettings.scheduleLayoutEl));
 
-    return { rowRatio, scheme, drawBorder, dowOnTop, borderFactor };
+    return { rowRatio, drawBorder, dowOnTop, borderFactor, columns };
 }
 
 async function findName(docData, pageCount, nameFixed) {
@@ -756,12 +781,11 @@ async function processPDF(userdata, name, indices) {
         errorCount += itemInfo.errorCount
 
         updInfo({ msg: 'Достаём расписание из файла', progress: 0.2 })
-        const [schedule, dates, bigFields] = makeSchedule(cont, page.view, contI, indices);
-        const warningText = makeWarningText(schedule, editParams.scheme, bigFields);
+        const [schedule, dates] = makeSchedule(cont, page.view, contI);
         updInfo({ msg: 'Создаём изображение расписания', progress: 0.3 })
 
         const renderer = createRecorderRenderer(createCanvasRenderer());
-        await renderSchedule(renderer, schedule, editParams.scheme, editParams);
+        await renderSchedule(renderer, schedule, editParams);
         const commands = renderer.commands;
         const defaultImgP = renderer.innerRenderer.canvas[1]();
 
@@ -777,7 +801,7 @@ async function processPDF(userdata, name, indices) {
             editParams, userdata,
         );
 
-        updInfo({ msg: 'Готово. Пожалуйста, поделитесь сайтом с друзьями ❤️', warning: warningText, progress: 1.0 });
+        updInfo({ msg: 'Готово. Пожалуйста, поделитесь сайтом с друзьями ❤️', progress: 1.0 });
         updateUserdataF('regDocumentCreated')(...userdata);
         return;
     }
@@ -913,32 +937,4 @@ function levenshteinDistance(str1, str2) {
         }
         return lef;
     }
-}
-
-function readScheduleScheme(str) {
-    const texts = str.split('\n')
-
-    const scheme = []
-
-    for(let i = 0; i < texts.length; i++) {
-        const line = texts[i].trimEnd();
-        if(line.length === 0) continue;
-        const count = Math.floor((line.length+1)/3);
-        if(count*3-1 !== line.length) throw ['Неправильная строка расположения дней: `' + line + '`', '[строка] = ' + i + '/' + texts.length];
-
-        for(let j = 0; j < count; j++) {
-            const sp = j*3;
-            const p = line.substring(sp, sp+2).toLowerCase();
-            if(p.trim() === '') continue;
-
-            const k = daysOfWeekShortenedLower.indexOf(p);
-            if(k === -1) throw ['Неправильный день недели `' + p + '`  в строке: `' + line + '` на ' + (sp+1) + ':' +  i];
-            else {
-                while(scheme.length <= j) scheme.push([])
-                scheme[j].push(k)
-            }
-        }
-    }
-
-    return scheme;
 }

@@ -78,6 +78,7 @@ function createCanvasRenderer() { return {
         this.width = 1
         this.height = 1
         this.canvas = createOffscreenCanvas(1, 1)
+        this.context = this.canvas[0].getContext("2d", { alpha: false, desynchronized: true });
 
     },
     async init(width, height) {
@@ -120,6 +121,14 @@ function createCanvasRenderer() { return {
         if(rotated) this.context.setTransform(0, -1, 1, 0, 0, 0);
         this.rotated = rotated;
         this.context.fillStyle = '#000';
+    },
+    setImportant(isImportant) {
+        if(isImportant) {
+            this.context.fillStyle = '#f00';
+        }
+        else {
+            this.context.fillStyle = '#000';
+        }
     },
     setFontSize(size) {
         this.context.font = size + 'px RenderFont';
@@ -209,6 +218,15 @@ class PDFRenderer {
         p.font = this.font;
         p.color = PDFLib.rgb(0, 0, 0);
     }
+    setImportant(isImportant) {
+        const p = this.tmpParams;
+        if(isImportant) {
+            p.color = PDFLib.rgb(1, 0, 0)
+        }
+        else {
+            p.color = PDFLib.rgb(0, 0, 0)
+        }
+    }
     setFontSize(size) {
         this.tmpParams.size = size;
     }
@@ -275,6 +293,10 @@ function createRecorderRenderer(innerRenderer) { return {
         this.commands.push({ command: 4, rotated });
         this.innerRenderer.setupText(rotated);
     },
+    setImportant(isImportant) {
+        this.commands.push({ command: 8, isImportant })
+        this.innerRenderer.setImportant(isImportant)
+    },
     setFontSize(size) {
         this.commands.push({ command: 5, size });
         this.innerRenderer.setFontSize(size);
@@ -315,6 +337,7 @@ async function playbackRenderRecording(commands, renderer) {
         break; case 5: { renderer.setFontSize(c.size); }
         break; case 6: { renderer.drawText(c.text, c.x, c.y); }
         break; case 7: { renderer.finalizeTexts(); }
+        break; case 8: { renderer.setImportant(c.isImportant) }
         break; default: throw "Unreachable: " + JSON.stringify(c);
         }
     }
