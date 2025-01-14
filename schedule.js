@@ -150,6 +150,77 @@ function calcItemBounds(item) {
     return bs
 }
 
+function checkIsRegularSchedule(cont, itemBs) {
+    function parseTime(str) {
+        if(str.length < 4) return;
+        const d = ':'.charCodeAt(0);
+
+        let i = 0;
+        let hour = 0;
+        for(; i < 2; i++) {
+            const ch = str.charCodeAt(i);
+            if(ch === d) break;
+            else if(ch < '0'.charCodeAt(0) || ch > '9'.charCodeAt(0)) return;
+            else hour = hour*10 + (ch - '0'.charCodeAt(0));
+        }
+        if(str.charCodeAt(i) !== d) return;
+        i++;
+
+        let j = 0;
+        let minute = 0;
+        for(; i < str.length; i++, j++) {
+            const ch = str.charCodeAt(i);
+            if(ch < '0'.charCodeAt(0) || ch > '9'.charCodeAt(0)) return;
+            else minute = minute*10 + (ch - '0'.charCodeAt(0));
+        }
+        if(j !== 2) return;
+
+        return hour * 60 + minute;
+}
+
+    const daysOfWeek = [
+        "Понедельник",
+        "Вторник",
+        "Среда",
+        "Четверг",
+        "Пятница",
+        "Суббота",
+        "Воскресенье"
+    ];
+
+    const daysOfWeekLower = daysOfWeek.map(a => a.toLowerCase())
+
+    const dow = Array(daysOfWeek.length);
+    let hoursR = -Infinity;
+    const hours = [];
+    for(let i = 0; i < cont.length; i++) {
+        const str = cont[i].str.toLowerCase();
+        for(let j = 0; j < daysOfWeek.length; j++) {
+            if(str !== daysOfWeekLower[j]) continue;
+            if(dow[j] != undefined) throw ["День недели " + j + " обнаружен дважды", "[дубликат] = " + i + "/" + cont.length];
+
+            dow[j] = i;
+            break;
+        }
+
+        if(i + 1 < cont.length) {
+            const h = parseTime(cont[i].str);
+            if(h != undefined) {
+                for(let j = 1; j < 3; j++) {
+                    let h2 = parseTime(cont[i+j].str);
+                    if(h2 != undefined) {
+                        hours.push({ first: i, last: i+j, sTime: h, eTime: h2 });
+                        hoursR = Math.max(hoursR, itemBs[i].r, itemBs[i+j].r);
+                        break
+                    }
+                }
+            }
+        }
+    }
+
+    return hours.length >= 2
+}
+
 const dateRegex = /^\d\d\.\d\d$/
 
 function findDaysOfWeekHours(cont, itemBs, columnItemI) {
@@ -187,7 +258,27 @@ function findDaysOfWeekHours(cont, itemBs, columnItemI) {
         }
     }
 
-    if(days.length < 2) throw "В рассписании найдено меньше двух дней";
+    if(days.length < 2) {
+        let regular = false
+        try {
+            regular = checkIsRegularSchedule(cont, itemBs)
+        }
+        catch(err) {
+            console.error(err)
+        }
+
+        if(regular) {
+            throw (
+                "Не удалось найти дни сессии, но удалось найти дни обычного расписания."
+                + "<p>Проверьте, что загруженный файл является расписанием сессии.</p>"
+                + "<p>Если вы хотите создать обычное расписание, "
+                + "перейдите на главную: "
+                + "<a href=\"/\">grouptimetable.github.io</a></p>"
+            )
+        }
+
+        throw "В рассписании найдено меньше двух дней"
+    }
 
     let daysT, daysHeight;
     {
