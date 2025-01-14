@@ -152,32 +152,58 @@ function calcItemBounds(item) {
 
 const dateRegex = /^\d\d\.\d\d$/
 
-function findDaysOfWeekHours(cont, itemBs) {
+function findDaysOfWeekHours(cont, itemBs, columnItemI) {
+    const columnBs = itemBs[columnItemI]
+
+    const dayItems = []
     const days = []
     let daysR = -Infinity;
     for(let i = 0; i < cont.length; i++) {
-        const str = cont[i].str.trim()
-        const st = str.toLowerCase()
-        const shortDay = st.substring(0, 2).trim()
-        const rest = st.substring(2).trim()
-        if(daysOfWeekShortenedLower.includes(shortDay) && dateRegex.test(rest)) {
-            const arr = []
-            arr.i = i
-            arr.name = st
-            days.push(arr)
-            daysR = Math.max(daysR, itemBs[i].r)
+        const bs = itemBs[i]
+        if(!intersects(bs.l, bs.r, columnBs.l, columnBs.r)) continue
+        if(bs.b > columnBs.t) continue
+
+        const curDayItems = []
+        let curString = ''
+        for(let j = 0; j < 5; j++) {
+            curString = (curString + ' ' + cont[i + j].str).trim()
+            curDayItems.push(i + j)
+
+            const st = curString.toLowerCase()
+            const shortDay = st.substring(0, 2).trim()
+            const rest = st.substring(2).trim()
+            if(daysOfWeekShortenedLower.includes(shortDay) && dateRegex.test(rest)) {
+                dayItems.push(curDayItems)
+
+                const arr = []
+                arr.name = st
+                days.push(arr)
+
+                curDayItems.forEach(index => {
+                    daysR = Math.max(daysR, itemBs[index].r)
+                })
+                break
+            }
         }
     }
 
-    if(days < 2) throw "В рассписании найдено меньше двух дней";
+    if(days.length < 2) throw "В рассписании найдено меньше двух дней";
 
     let daysT, daysHeight;
     {
-        const b0 = itemBs[days[0].i]
-        const b1 = itemBs[days[1].i]
+        const d0 = dayItems[0]
+        let sum0 = 0
+        for(let i = 0; i < d0.length; i++) {
+            sum0 += (itemBs[d0[i]].t + itemBs[d0[i]].b) * 0.5
+        }
+        const c0 = sum0 / d0.length
 
-        const c0 = 0.5 * (b0.b + b0.t) //center of the 1st days label
-        const c1 = 0.5 * (b1.b + b1.t) // --- 2nd ---
+        const d1 = dayItems[1]
+        let sum1 = 0
+        for(let i = 0; i < d1.length; i++) {
+            sum1 += (itemBs[d1[i]].t + itemBs[d1[i]].b) * 0.5
+        }
+        const c1 = sum1 / d1.length
 
         daysHeight = Math.abs(c1 - c0);
         daysT = c0 + daysHeight * 0.5;
@@ -191,20 +217,10 @@ function intersects(a1, a2, b1, b2) {
     return a2 > b1 && a1 < b2;
 }
 
-function findDates(cont, bounds, colBounds) {
+function findDates(cont, bounds, colBounds, columnItemI) {
     const datesRegex = /\s?(\d\d)\.(\d\d)\.(\d\d\d\d)\s.*?\s(\d\d)\.(\d\d)\.(\d\d\d\d)/
 
-    let itemI = 0
-    for(; itemI < cont.length; itemI++) {
-        const item = cont[itemI]
-        if(item.str.toLowerCase().trim() == 'срок') {
-            break
-        }
-    }
-
-    if(itemI == cont.length) return
-
-    const itemBs = bounds[itemI]
+    const itemBs = bounds[columnItemI]
 
     let str
     for(let i = 0; i < cont.length; i++) {
@@ -257,6 +273,21 @@ function bigCheckEmpty(curCol, otherCol, leftSide, f, yOff, table) {
     return true
 }
 
+function findDatesColumn(cont) {
+    let itemI = 0
+    for(; itemI < cont.length; itemI++) {
+        const item = cont[itemI]
+        if(item.str.toLowerCase().trim() == 'срок') {
+            break
+        }
+    }
+
+    if(itemI == cont.length) {
+        throw 'Столбец `Срок` не найден'
+    }
+    return itemI
+}
+
 function makeSchedule(cont, pageView, groupNameI) {
     if(cont.length < 1) throw 'Unreachable'
 
@@ -265,8 +296,9 @@ function makeSchedule(cont, pageView, groupNameI) {
 
     const pageR = Math.max(pageView[0], pageView[2])
     const colBounds = findColumnBounds(cont, itemBs, groupNameI);
-    const { days, daysC, daysR, daysT, daysHeight } = findDaysOfWeekHours(cont, itemBs);
-    const dates = findDates(cont, itemBs, colBounds)
+    const datesI = findDatesColumn(cont, itemBs)
+    const { days, daysC, daysR, daysT, daysHeight } = findDaysOfWeekHours(cont, itemBs, datesI);
+    const dates = findDates(cont, itemBs, colBounds, datesI)
     const colWidth = colBounds.r - colBounds.l;
 
     const errX = colWidth * 0.02;
