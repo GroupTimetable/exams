@@ -690,7 +690,7 @@ async function loadFromListFiles(list) {
     }
 
     updateCurrentDocument(fileContent, filename)
-    window.localStorage.setItem("saved", jsIsDumb(fileContent))
+    // window.localStorage.setItem("saved", jsIsDumb(fileContent))
 }
 
 function updateFilenameDisplay(fileType, filename, href) {

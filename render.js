@@ -89,7 +89,7 @@ function createCanvasRenderer() { return {
         this.context = this.canvas[0].getContext("2d", { alpha: false, desynchronized: true });
 
         this.context.strokeStyle = '#000';
-        this.context.textBaseline = 'ideographic';
+        this.context.textBaseline = 'bottom';
         this.fontSizeFac = fontSizeFac;
         this.fontHeightFac = 1 / fontSizeFac;
         this.size = 0
@@ -137,9 +137,9 @@ function createCanvasRenderer() { return {
     },
     drawText(text, x, y) {
         if(this.rotated) {
-            this.context.fillText(text, -y, x - fontDescenderFac * this.size);
+            this.context.fillText(text, -y, x);
         } else {
-            this.context.fillText(text, x, y - fontDescenderFac * this.size);
+            this.context.fillText(text, x, y);
         }
     },
     finalizeTexts() {
