@@ -866,8 +866,7 @@ async function renderSchedule(renderer, schedule, editParams) {
                 const index = renderPattern[i][j];
                 if(index == undefined || schedule[index] == undefined) continue;
                 const day = schedule[index];
-                const rowsCount = day.length + (dowOnTop ? 1 : 0);
-                const height = rowsCount * groupSize.h;
+                const height = day.length * groupSize.h + (dowOnTop ? dowTopHeight : 0);;
                 renderer.drawRect(x, curY, groupSize.w, height)
                 curY = curY + height;
             }
